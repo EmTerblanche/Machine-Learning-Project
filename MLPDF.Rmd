@@ -1,0 +1,430 @@
+---
+# IMPORTANT: Change settings here, but DO NOT change the spacing.
+# Remove comments and add values where applicable.
+# The descriptions below should be self-explanatory
+
+title: "Modelling South African Salaries"
+#subtitle: "This will appear as Right Header"
+
+documentclass: "elsarticle"
+
+# --------- Thesis title (Optional - set to FALSE by default).
+# You can move the details below around as you please.
+Thesis_FP: FALSE
+# Entry1: "An unbelievable study with a title spanning multiple lines."
+# Entry2: "\\textbf{Nico Katzke}" # textbf for bold
+# Entry3: "A thesis submitted toward the degree of Doctor of Philosophy"
+# Uni_Logo: Tex/Logo.png # Place a logo in the indicated location (from your root, e.g. defaults to ~/Tex/Logo.png) and uncomment this line. Leave uncommented for no image
+# Logo_width: 0.3 # If using a logo - use this to set width (size) of image
+# Entry4: "Under the supervision of: \\vfill Prof. Joe Smith and Dr. Frank Smith"
+# Entry5: "Stellenbosch University"
+# Entry6: April 2020
+# Entry7:
+# Entry8:
+
+# --------- Front Page
+# Comment: ----- Follow this pattern for up to 5 authors
+AddTitle: TRUE # Use FALSE when submitting to peer reviewed platform. This will remove author names.
+Author1: "Emma Terblanche"  # First Author - note the thanks message displayed as an italic footnote of first page.
+Ref1: "Stellenbosch University" # First Author's Affiliation
+Email1: "21777039\\@sun.ac.za" # First Author's Email address
+
+#Author2: "John Smith"
+#Ref2: "Some other Institution, Cape Town, South Africa"
+#Email2: "John\\@gmail.com"
+#CommonAffiliation_12: TRUE # If Author 1 and 2 have a common affiliation. Works with _13, _23, etc.
+
+#Author3: "John Doe"
+#Email3: "Joe\\@gmail.com"
+
+#CorrespAuthor_1: TRUE  # If corresponding author is author 3, e.g., use CorrespAuthor_3: TRUE
+
+# Comment out below to remove both. JEL Codes only given if keywords also given.
+keywords: "Machine Learning \\sep Regularised Regressions \\sep Linear Regressions" # Use \\sep to separate
+#JELCodes: "L250 \\sep L100"
+
+# ----- Manage headers and footers:
+#BottomLFooter: $Title$
+#BottomCFooter:
+#TopLHeader: \leftmark # Adds section name at topleft. Remove comment to add it.
+BottomRFooter: "\\footnotesize Page \\thepage" # Add a '#' before this line to remove footer.
+addtoprule: TRUE
+addfootrule: TRUE               # Use if footers added. Add '#' to remove line.
+
+# --------- page margins:
+margin: 2.3 # Sides
+bottom: 2 # bottom
+top: 2.5 # Top
+HardSet_layout: TRUE # Hard-set the spacing of words in your document. This will stop LaTeX squashing text to fit on pages, e.g.
+# This is done by hard-setting the spacing dimensions. Set to FALSE if you want LaTeX to optimize this for your paper.
+
+# --------- Line numbers
+linenumbers: FALSE # Used when submitting to journal
+
+# ---------- References settings:
+# You can download cls format here: https://www.zotero.org/ - simply search for your institution. You can also edit and save cls formats here: https://editor.citationstyles.org/about/
+# Hit download, store it in Tex/ folder, and change reference below - easy.
+bibliography: Tex/ref.bib       # Do not edit: Keep this naming convention and location.
+csl: Tex/harvard-stellenbosch-university.csl # referencing format used.
+# By default, the bibliography only displays the cited references. If you want to change this, you can comment out one of the following:
+#nocite: '@*' # Add all items in bibliography, whether cited or not
+# nocite: |  # add specific references that aren't cited
+#  @grinold2000
+#  @Someoneelse2010
+
+# ---------- General:
+RemovePreprintSubmittedTo: TRUE  # Removes the 'preprint submitted to...' at bottom of titlepage
+Journal: ""   # Journal that the paper will be submitting to, if RemovePreprintSubmittedTo is set to TRUE.
+toc: TRUE                      # Add a table of contents
+numbersections: TRUE             # Should sections (and thus figures and tables) be numbered?
+fontsize: 11pt                  # Set fontsize
+linestretch: 1.2                # Set distance between lines.
+link-citations: TRUE            # This creates dynamic links to the papers in reference list.
+
+### Adding additional latex packages:
+# header-includes:
+#    - \usepackage{colortbl} # Add additional packages here.
+
+output:
+  pdf_document:
+    keep_tex: TRUE
+    template: Tex/TexDefault.txt
+    fig_width: 3.5 # Adjust default figure sizes. This can also be done in the chunks of the text.
+    fig_height: 3.5
+#abstract: |
+#  Abstract to be written here. The abstract should not be too long and should provide the reader with a good understanding what you are writing about. Academic papers are not like novels where you keep the reader in suspense. To be effective in getting others to read your paper, be as open and concise about your findings here as possible. Ideally, upon reading your abstract, the reader should feel he / she must read your paper in entirety.
+---
+
+<!-- First: Set your default preferences for chunk options: -->
+
+<!-- If you want a chunk's code to be printed, set echo = TRUE. message = FALSE stops R printing ugly package loading details in your final paper too. I also suggest setting warning = FALSE and checking for warnings in R, else you might find ugly warnings in your paper. -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 6, fig.height = 5, fig.pos="H", fig.pos = 'H')
+# Note: Include = FALSE implies the code is executed, but not printed in your pdf.
+# warning and message = FALSE implies ugly messages and warnings are removed from your pdf.
+# These should be picked up when you execute the command chunks (code sections below) in your rmd, not printed in your paper!
+
+# Packages
+if(!require("tidyverse")) install.packages("tidyverse")
+library(tidyverse)
+library(rsample)
+library(vtable)
+library(glmnet)
+library(forecast)
+library(MASS)
+library(caret)
+library(vip)
+library(gridExtra)
+
+#Loading Data 
+GHS2016WAP <- read.csv("/Users/mac/Desktop/MachineLearningProject/MLPDF/data/GHS2016WAP.csv")
+GHS2016WAPsmall <- read.csv("/Users/mac/Desktop/MachineLearningProject/MLPDF/data/GHS2016WAPsmall.csv")
+```
+
+
+
+
+```{r, cache=F, message=F}
+#Splitting the data 
+split  <- initial_split(GHS2016WAP, prop = 0.7, strata = "newsal")
+GHS2016_train  <- training(split)
+GHS2016_test   <- testing(split)
+
+```
+
+```{r}
+splitsmall  <- initial_split(GHS2016WAPsmall, prop = 0.7, strata = "newsal")
+GHS2016Small_train  <- training(splitsmall)
+GHS2016Small_test   <- testing(splitsmall)
+
+# Create training  feature matrices
+# we use model.matrix(...)[, -1] to discard the intercept
+XS <- model.matrix(newsal ~ ., GHS2016Small_train)[, -1]
+# transform y with log transformation
+YS <- log1p(GHS2016Small_train$newsal)
+
+newXS <- model.matrix(newsal ~., GHS2016Small_test)[, -1]
+newYS <- log1p(GHS2016Small_test$newsal)
+
+```
+
+```{r}
+GHS2016Small_train <- GHS2016Small_train %>% 
+  rename("AbleToStartWork" = "Q46dAccJob",
+         "ReasonForNotWorking" = "Q46cRNSW",
+         "OtherInternet" = "Q65Int9"
+         )
+```
+
+
+
+<!-- ############################## -->
+<!-- # Start Writing here: -->
+<!-- ############################## -->
+
+\newpage
+
+# Introduction 
+With large scale poverty and unemployment levels, modelling South African incomes is a vital part of performing economic analysis within the South African context. There are multiple factors impacting a South African’s salary. Determining what these are and how they affect someone’s socioeconomic status allows for policy implementation to be better targeted at improving standards of living. Fortunately, survey datasets provide information on many possible influences. Machine learning techniques are often used to more accurately conduct such statistical analyses by providing methods to manage such an abundance of features. 
+
+This paper compares the prediction ability of different machine learning models on the monthly salaries of South Africans using the General Household Survey (GHS) data of 2016. It trains five models, three of which are linear regressions, and two are regularised regressions. The linear regression methods used are multivariate linear regression, principal component regression, and partial least squares regression. Ridge regression and lasso regression are the two regularised regression techniques used. The comparison metrics are Root Mean Squared Error (RMSE) and R-squared. A model with a lower RMSE and a higher R-squared is perceived to model salaries more accurately. 
+
+The Methodology section provides insight into the data cleaning and manipulation techniques used prior to machine learning analysis. The Results section explains each model used, as well as their RMSE and R-squared scores. It also presents the features that each model deemed most influential to South African salaries. The Discussion section draws a comparison of the results. This paper concludes that the lasso regression model performs marginally better than its counterparts. 
+
+
+# Methodology 
+## Data and Manipulations 
+The original GHS 2016 data set consists of 486 features with 75 972 observations. As this paper aims to model South African salaries, the data set was restricted to include only the working age population. A manipulated version of monthly salary is used as the dependent variable in all five models. While there were no missing values in the data set, the monthly salary feature contained two categories, "Not Applicable" and "Unspecified", that challenged its status as a numeric variable which is needed for the modelling methods used. Those with "Unspecified" listed as their monthly salary were dropped from the data, as they did not appear many times. The "Not Applicable" observations were changed to zero due to most of these individuals also being unemployed, implying that they do not earn a salary. In order to prevent the possibility of multicollinearity in the models, the other income classification features, such as total income, were excluded. After these changes, the final data set consisted of 469 variables with 43 450 observations. Furthermore, regularised regression requires all dependent features to be numeric (Boehmke & Greenwell, 2020). As the caret-package is used, however, conversions of variables are done automatically. 
+
+The resulting dependent variable, however, has 25 427 zero salary-earners, which makes up approximately 58% of the observations. An important assumption in regression analysis is that the errors of the model need to be normally distributed (Kim, 2015). For this to be more likely, it is useful for the dependent variable to be normally distributed. To convert the salary variable closer to a normal distribution, a constant of value 1 was added to all rows in the feature and then logged. This was done to avoid -Inf values that would arise from simply logging zeroes. As research made clear and what can be seen in the graph below, however, it is not simple to convert a variable that is so far skewed to the right to a normal distribution. This poses a limitation for this paper's results. 
+
+```{r, fig.width=5, fig.height=4, fig.align='center'}
+#Salary variable graph 
+
+plot(density(log1p(GHS2016WAPsmall$newsal)), main = "Kernel Density of Transformed Salary")
+
+```
+
+
+## Training and Testing Sets 
+The data were split into two subsamples -- a training and a testing set. In accordance to Boehmke & Greenwell (2020), 70% of the data were allocated to the training set, and the remaining 30% to the testing set. The sample selection was stratified based on the dependent variable. The tables below illustrates the summary statistics of the salary variables in Rand terms in the training and testing sets. The stratification ensures that the observations in the subsamples follow similar salary distributions. 
+
+```{r, fig.align='center'}
+sumtable(GHS2016_train, vars = 'newsal', title = "Training Set")
+sumtable(GHS2016_test, vars = 'newsal', title = "Testing Set")
+```
+
+All regressions were first tested using resampling methods via 10-fold cross-validation. In addition, the performance of the regularised regressions was examined on the test data. All models use pre-processing to scale or center numeric variables and take out any variables that exhibit little to no variance (Boehmke & Greenwell, 2020). The results of these tests are presented in the next section. 
+
+# Results
+## Linear Models
+### Multivariate Linear Regression 
+The first model trained is one which regresses all the possible dependent variables on the transformed monthly salary. As previously mentioned, linear models require residuals to be normally distributed. The density plot below, however, illustrates that the kurtosis of the residuals is likely too small. 
+
+```{r}
+# Linear Regression - Everything 
+cvlinear1S <- caret::train(
+  form = log1p(newsal) ~ ., 
+  data = GHS2016Small_train, 
+  method = "lm",
+  preProcess = c("zv", "center", "scale"),
+  trControl = trainControl(method = "cv", number = 10)
+)
+```
+
+```{r, fig.width=5, fig.height=4, fig.align='center'}
+reslm <- resid(cvlinear1S)
+
+plot(density(reslm), main = "Kernel Density of Linear Regression Residuals")
+```
+
+After resampling, the RMSE of the multivariate linear model is 0.8424206. The R-squared is 0.9586733, implying that the model is explaining 95% of the variance in the data. This high R-squared is likely, however, simply due to the large amount of features added. Before pre-processing was used to remove 44 near-zero variance variables, 49 coefficients were undefined by this model, due to variables exhibiting perfect multicollinearity (Statology, 2021). This implies that although much of the variance is explained, there is a need for high correlation between independent variables to be dealt with. 
+
+### Principal Component Regression
+A principal component regression is a form of linear regression that reduces correlated dimensions before the model is fitted (Boehmke & Greenwell, 2020). It follows a two step procedure where highly correlated features are grouped together and represented in a regression by other uncorrelated variables, or principal components (Boehmke & Greenwell, 2020). This method can improve predictions of the multivariate linear regression by controlling for multicollinearity (Boehmke & Greenwell, 2020). The results of the multivariate linear regression show that the data used in this paper have many variables that contain very similar information, such as a feature indicating whether the household receives a social grant, and another indicating whether each individual is a recipient. Principal component regression does not, however, choose principal components based on importance in predicting the outcome variable. As such, variables included in this regression may not hold as much predictive power as those in the multivariate linear model. 
+
+
+```{r, fig.width= 4, fig.height=4, fig.align='center'}
+cvpcr1S <- train(
+  log1p(newsal) ~ ., 
+  data = GHS2016Small_train, 
+  method = "pcr",
+  trControl = trainControl(method = "cv", number = 10),
+  preProcess = c("zv", "center", "scale"),
+  tuneLength = 300
+)
+
+
+ggplot(cvpcr1S)
+#similar to textbook 
+```
+
+The principal component regression used in this paper creates 300 principal components, making it computationally inefficient. As can be seen in the graph below, there is already a large drop in the RMSE after the use of approximately 25 principal components. The amount of principal components that produces the lowest RMSE, however, is 299. The RMSE at this point is 0.8800451, implying that it models the data better than the previous model. The R-squared is 0.9549784. This illustrates that a similar amount of variance can be explained by this model as in the multivariate linear regression model.
+
+### Partial Least Squares
+A partial least squares can build on the faults of principal component regressions by using the outcome variable to aid in the creation of components to represent the correlated predictors. This often results in much higher predictive capabilities (Boehmke & Greenwell, 2020). 
+
+```{r, fig.width= 4, fig.height=4, fig.align='center'}
+# Partial Least Squares 
+cvpls1S <- train(
+  log1p(newsal) ~ ., 
+  data = GHS2016Small_train, 
+  method = "pls",
+  trControl = trainControl(method = "cv", number = 10),
+  preProcess = c("zv", "center", "scale"),
+  tuneLength = 50
+)
+
+ggplot(cvpls1S)
+#also similar to textbook 
+```
+The partial least squares model creates 50 principal components. While the above graph shows that there is a significant drop in the RMSE score after the use of just one principal component, the lowest RMSE (0.8375993) occurs after the use of 40 components. Therefore, this model uses less principal components than the principal component regression and has a slightly lower RMSE than both the previous models. The R-squared of this model on the training data is similar at 0.9591904. 
+
+## Regularised Models 
+As is explained above, there are linear models that aim to solve some of the problems that arise from having many features in a data set. However, when there are a very high number of variables, linear models can overfit the data (Boehmke & Greenwell, 2020). Regularised models offer techniques to constrain some of the variables, so as to improve the predictive capabilities on new data. Due to the large number of features in the GHS 2016 data, a regularised regression is expected to have more accurate predictions. Both types of regularised regressions used in this paper make use of a tuning parameter $\lambda$. As $\lambda$ increases, coefficients are pushed closer to zero. 
+
+### Ridge Regression
+A ridge regression constrains coefficients in the model by forcing them closer to zero as the tuning parameter increases (Boehmke & Greenwell, 2020). This type of model does not, however, reduce any parameters fully to zero. This helps to deal with features of low importance, as well as forcing those that are highly correlated closer to each other. 
+
+```{r, fig.width= 5, fig.height=4, fig.align='center'}
+# Ridge 
+cvridge1S <- cv.glmnet(
+  x = XS,
+  y = YS,
+  alpha = 0
+)
+
+ridgelambdaminS <- cvridge1S$lambda.min  
+
+plot(cvridge1S, xvar = "lambda", main = "Ridge penalty\n\n")
+abline(v = log(cvridge1S$lambda.min), col = "red", lty = "dashed")
+abline(v = log(cvridge1S$lambda.1se), col = "blue", lty = "dashed")
+#Very low lambda values 
+#Bunch of warnings
+```
+
+The optimal tuning parameter for this model is determined by cross-validation (Boehmke & Greenwell, 2020). The graph above illustrates that $\lambda$ increases, the mean-squared error of this model on the training data increases. The $\lambda$ that generates the lowest mean-squared error for this model is illustrated by the red line, and is 0.3991006. At this point, the mean-squared error is 0.7497738. The blue line represents another possible $\lambda$ value within one standard deviation away from the red line (Boehmke & Greenwell, 2020). When applied to the testing data, the RMSE of the ridge regression becomes 0.8402423. This implies that the model slightly overfits on the training data. The R-squared of the ridge regression on the test data is 0.9587792, indicating that it explains approximately 96% of the variance in the testing data. 
+
+### Lasso Regression 
+A lasso regression model is the same as a ridge regression, but is able to push coefficients all the way to zero. Not only does this allow for less important features' impacts to be dampened, but it allows for them to be removed from the model. Such a model will be helpful to predict South African salaries, as it will allow for large survey data sets to become narrower. As a data set becomes narrower, necessary model assumptions are less likely to be violated (Boehmke & Greenwell, 2020).
+
+```{r, fig.width= 5, fig.height=4, fig.align='center'}
+# Lasso 
+cvlasso1S <- cv.glmnet(
+  x = XS,
+  y = YS,
+  alpha = 1
+)
+
+lassolambdaminS <- cvlasso1S$lambda.min 
+
+plot(cvlasso1S, xvar = "lambda", main = "Lasso penalty\n\n")
+abline(v = log(cvlasso1S$lambda.min), col = "red", lty = "dashed")
+abline(v = log(cvlasso1S$lambda.1se), col = "blue", lty = "dashed")
+# around -6 red lambda, around -4 blue lambda 
+```
+
+As is shown by the red line, the lasso regression produces a slightly lower minimum RMSE (0.8356222) than the ridge regression on the training data. While the ridge regression uses 424 variables, this model uses only 233. The blue line illustrates that a similar minimum RMSE (0.85088806549) can be achieved by using only 70 features. When the model is applied to the testing data, it achieves a minimum RMSE of 0.8081423. This implies that the model fits the testing data slightly better than the training data. 
+
+
+```{r}
+
+### Ridge
+Sy_predicted_ridge <- predict(cvridge1S, s= ridgelambdaminS, newx = newXS)
+
+#Ridge MSE 
+SMSE_ridge = (sum((Sy_predicted_ridge - newYS)^2)/ length(Sy_predicted_ridge))
+
+#Ridge RMSE (square root of MSE)
+Srmse_ridge <- sqrt(SMSE_ridge)
+
+#Ridge goodness of fit from the SST and SSE 
+Ssst <- sum((newYS - mean(newYS))^2)
+#sst: sum of sqaures total. 
+Sridgesse <- sum((Sy_predicted_ridge - newYS)^2)
+
+Sridgersquared <- 1 - (Sridgesse/Ssst)
+```
+
+
+```{r}
+
+### Lasso
+Sy_predicted_lasso <- predict(cvlasso1S, s = lassolambdaminS, newx = newXS)
+
+
+#Lasso MSE 
+SMSE_lasso = (sum((Sy_predicted_lasso - newYS)^2)/ length(Sy_predicted_lasso))
+
+
+SMSE_translasso = (sum((exp(Sy_predicted_lasso) - exp(newYS))^2)/ length(exp(Sy_predicted_lasso)))
+
+
+#Lasso RMSE (square root of MSE)
+Srmse_lasso <- sqrt(SMSE_lasso)
+
+
+Srmse_translasso <- sqrt(exp(SMSE_lasso))
+
+#Lasso goodness of fit from the SST and SSE 
+Ssst <- sum((newYS - mean(newYS))^2)
+#sst: sum of sqaures total. 
+Slassosse <- sum((Sy_predicted_lasso - newYS)^2)
+
+Slassorsquared <- 1 - (Slassosse/Ssst)
+```
+
+# Discussion 
+A comparison of RMSE scores shows that all the methods used in this paper modelled the training data with a similar amount of error, with the lasso regression scoring the lowest minimum RMSE, and the principal component regression scoring the highest. This implies that the lasso regression model predicts South African salaries most accurately. The table below presents the RMSE values for each model, as well as the RMSE in Rand terms calculated in the following way: 
+$$ exp(RMSE_{transformed})-1$$
+The models all have very similar R-squared values as well. As mentioned previously, R-squared often increases simply based on a large amount of features controlled for. The lasso regression, however, scores a marginally higher R-squared than the other models and uses significantly fewer features.
+
+```{r, fig.align='center'}
+library(png)
+library(grid)
+statstab <- readPNG("/Users/mac/Desktop/MachineLearningProject/MLPDF/StatsTableML.png")
+ grid.raster(statstab)
+ 
+```
+
+## Coefficients 
+An important part of economic analysis in the South African context is determining which factors impact income levels. The graphs below illustrate the top 10 coefficients that the three linear models deemed most impactful on the dependent variable. The top graph shows those of the multivariate linear regression, the middle provides those of the principal component regression, and the bottom graph illustrates the top 10 coefficients of the partial least squares regression. 
+```{r}
+# Feature Interpretation 
+## Linear: 
+
+graph1 <- vip::vip(cvlinear1S, num_features = 10, method = "model", geom = "point", main = "Linear")
+graph2 <- vip::vip(cvpcr1S, num_features = 10, method = "model", geom = "point", main = "Principal Component")
+graph3 <- vip::vip(cvpls1S, num_features = 10, method = "model", geom = "point", main = "Partial Least Squares")
+#Shows the top 10 most important features
+
+gridExtra::grid.arrange(graph1, graph2, graph3)
+```
+
+The next two graphs illustrate the same information for the regularised regressions. The top graph shows that of the ridge regression, and the bottom graph shows that of the lasso regression. 
+
+```{r}
+## Regularised:
+graph4 <- vip(cvridge1S, num_features = 10, geom = "point", main = "Ridge")
+graph5 <- vip(cvlasso1S, num_features = 10, geom = "point", main = "Lasso")
+
+gridExtra::grid.arrange(graph4, graph5)
+
+```
+
+The graphs illustrate that the five models deem similar features to be in the top 10 most influential to South African salaries. Working in the business sector and looking for work are within the top three coefficients of every model. The principal component and partial least squares regressions both deem that someone having access to transport to their place of employment as vital in predicting their salary, whereas the regularised regressions instead consider having pension-related investments as more important. 
+
+Deeming such coefficients as important, however, indicate some reverse causality. It seems more likely that having a pension-related investment would occur as a result of someone earning a higher salary, rather than it contributing to the likelihood of salary increasing. The same argument applies to most of the other variables viewed as important. Furthermore, in the South African context, a feature such as race would play a significant role in someone's salary prospects due to largely wage gaps between race groups. Only the regularised regressions consider a fixed feature, such as gender, to play a significant role. 
+
+```{r, fig.align='center'}
+sumtable(GHS2016WAP, vars = 'newsal', group = 'Race', title = "Salary Across Race Groups", group.long = TRUE)
+```
+
+
+In the table above, the numbers one to four indicate race groups: "1" shows the statistics for Black South Africans, "2" for Coloured South Africans, "3" for Indian or Asian South Africans, and "4" for White South Africans. It illustrates that race is likely not deemed as important in these regressions, as the GHS 2016 data reports similar income distributions across race groups. As previously mentioned, this is not representative of the South African income distribution. 
+
+
+# Conclusion 
+South African survey data typically contains a large number of features. In order to draw sound statistical conclusions regarding important economic topics, such as income, accurate modelling is required. This paper compared the performance of five machine learning models at predicting South African incomes. By analysing RMSE and R-squared scores, it was determined that the lasso regression model performed marginally better than the other models. In addition, the lasso model narrows the GHS 2016 data set to only 233 variables. The coefficients that the models deem as important, however, highlight that the models do not account for reverse causality. A limitation of this study is that the dependent variable of choice, monthly salary, is not representative of the South African context. 
+
+
+\hfill
+
+<!-- hfill can be used to create a space, like here between text and table. -->
+
+
+
+
+<!-- Make title of bibliography here: -->
+<!-- \newpage -->
+
+\newpage
+
+# References {-}
+
+Boehmke, B. & Greenwell, B. 2020. *Hands-On Machine Learning with R*. CRC Press. 
+
+Kim, B. 2015. *Should I transform my variables to make them normally distributed?* [Online]. Available: https://data.library.virginia.edu/normality-assumption/ [2022, July]. 
+
+
